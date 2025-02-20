@@ -17,7 +17,7 @@ const NBodySimulation = () => {
 
     useEffect(() => {
         // Initialize WebSocket connection
-        socketRef.current = new WebSocket("ws://localhost:8080/nbody/ws");
+        socketRef.current = new WebSocket("ws://localhost:8080/ws");
 
         // When receiving data, update state
         socketRef.current.onmessage = (event) => {

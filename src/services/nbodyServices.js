@@ -1,6 +1,6 @@
 import NBodySimulation from "../components/NBodySimulation";
 
-const API_URL = "http://localhost:8080/nbody/ws";
+const API_URL = "http://localhost:8080/ws";
 
 
 export const getBodies = async () => {
