@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { getBodies } from "../services/nbodyServices";
 
 const NBodySimulation = () => {
@@ -12,7 +12,8 @@ const NBodySimulation = () => {
         };
 
         fetchBodies();
-        const interval = setInterval(fetchBodies, 1000 / 60);
+        const speed = 30
+        const interval = setInterval(fetchBodies, 1000 / speed);
 
         return () => clearInterval(interval);
     }, []);
