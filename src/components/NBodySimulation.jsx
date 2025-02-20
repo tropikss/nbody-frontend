@@ -9,9 +9,15 @@ const NBodySimulation = () => {
     const canvasRef = useRef(null);
     const socketRef = useRef(null);
 
+    const sendMessage = (message) => {
+        if (socketRef.current) {
+            socketRef.current.send(JSON.stringify(message));
+        }
+    };
+
     useEffect(() => {
         // Initialize WebSocket connection
-        socketRef.current = new WebSocket("ws://localhost:8080/nbody/compute");
+        socketRef.current = new WebSocket("ws://localhost:8080/nbody/ws");
 
         // When receiving data, update state
         socketRef.current.onmessage = (event) => {
