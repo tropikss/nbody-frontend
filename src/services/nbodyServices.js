@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = "http://localhost:8080/nbody";
+const API_URL = "http://localhost:8080/nbody/compute";
 
 export const getBodies = async () => {
     try {
