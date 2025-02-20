@@ -1,54 +1,66 @@
 import { useEffect, useState, useRef } from "react";
+import { useWebSocket } from "../contexts/WebSocketContext";
 
 const CANVAS_SIZE = 500;
 const CENTER = CANVAS_SIZE / 2;
 
 const NBodySimulation = () => {
+    const { socket, registerMessageHandler } = useWebSocket();
+    const [message, setMessage] = useState("");
     const [bodies, setBodies] = useState([]);
-    const [fps, setFps] = useState(30); // Default FPS
+    const bodiesRef = useRef(bodies); // pour avoir toujours les dernières données
+    const [fps, setFps] = useState(250);
     const canvasRef = useRef(null);
-    const socketRef = useRef(null);
 
-    const sendMessage = (message) => {
-        if (socketRef.current) {
-            socketRef.current.send(JSON.stringify(message));
-        }
-    };
-
+    // Mise à jour du ref à chaque changement de bodies
     useEffect(() => {
-        // Initialize WebSocket connection
-        socketRef.current = new WebSocket("ws://localhost:8080/ws");
+        bodiesRef.current = bodies;
+    }, [bodies]);
 
-        // When receiving data, update state
-        socketRef.current.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            setBodies(data);
-        };
-
-        // Cleanup WebSocket on component unmount
-        return () => {
-            if (socketRef.current) {
-                socketRef.current.close();
+    // Enregistrement unique du callback de réception
+    useEffect(() => {
+        if (!registerMessageHandler) return;
+        registerMessageHandler((msg) => {
+            try {
+                const nBody = JSON.parse(msg.data);
+                setBodies(nBody);
+            } catch (error) {
+                console.error("Erreur lors du parsing du message :", error);
             }
-        };
-    }, []);
+        });
+    }, [registerMessageHandler]);
 
+    // Envoi périodique de la commande [getBodies]
     useEffect(() => {
+        if (!socket) return;
+        const interval = setInterval(() => {
+            socket.send("[getBodies]");
+        }, 1000 / fps);
+        return () => clearInterval(interval);
+    }, [socket, fps]);
+
+    // Boucle de rendu lancée une seule fois
+    useEffect(() => {
+        let animationFrameId;
         const renderLoop = () => {
             drawBodies();
-            setTimeout(renderLoop, 1000 / fps);
+            animationFrameId = requestAnimationFrame(renderLoop);
         };
         renderLoop();
-    }, [bodies, fps]);
+        return () => cancelAnimationFrame(animationFrameId);
+    }, []);
 
     const drawBodies = () => {
         const canvas = canvasRef.current;
+        if (!canvas) return;
         const ctx = canvas.getContext("2d");
         if (!ctx) return;
 
+        // Effacer le canvas
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        bodies.forEach((body) => {
+        // Utiliser les données les plus récentes depuis bodiesRef
+        bodiesRef.current.forEach((body) => {
             const drawX = CENTER + body.x - 250;
             const drawY = CENTER - (body.y - 250);
 
@@ -60,14 +72,37 @@ const NBodySimulation = () => {
         });
     };
 
+    const sendMessage = () => {
+        if (!socket) {
+            alert("Veuillez vous connecter au serveur");
+            return;
+        }
+        console.log("Envoi de message :", message);
+        socket.send(message);
+    };
+
     return (
         <div style={{ textAlign: "center", marginTop: "20px" }}>
             <h1 style={{ color: "white" }}>N-Body Simulation</h1>
-            <canvas ref={canvasRef} width={CANVAS_SIZE} height={CANVAS_SIZE} style={{ background: "black" }}></canvas>
+            <canvas
+                ref={canvasRef}
+                width={CANVAS_SIZE}
+                height={CANVAS_SIZE}
+                style={{ background: "black" }}
+            ></canvas>
             <div style={{ marginTop: "10px" }}>
-                <button onClick={() => setFps((prev) => Math.max(1, prev - 5))}>- FPS</button>
+                <button onClick={() => setFps((prev) => Math.max(1, prev - 5))}>
+                    - FPS
+                </button>
                 <span style={{ color: "white", margin: "0 15px" }}>FPS: {fps}</span>
                 <button onClick={() => setFps((prev) => prev + 5)}>+ FPS</button>
+            </div>
+            <div>
+                <input
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                />
+                <button onClick={sendMessage}>Envoyer</button>
             </div>
         </div>
     );
